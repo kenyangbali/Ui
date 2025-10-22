@@ -15,7 +15,6 @@ DEFAULT_MODAL_URL = "https://forreplit0088--example-comfyui-ui.modal.run/"
 DEFAULT_NEGATIVE_PROMPT = "(static image:1.5), (still frame:1.4), (motionless:1.3), motion blur, blurry, low quality, bad quality, worst quality, jpeg artifacts, compression, watermark, text, signature, username, error, deformed, mutilated, extra limbs, bad anatomy, ugly, (fused fingers:1.2), (too many fingers:1.2), pixelated, low resolution"
 
 # 3. WORKFLOW TEMPLATE (Berdasarkan comfyui_api_wan2_2_5B_i2v.json ANDA)
-#    Nilai untuk width, height, length, dan fps akan diganti secara dinamis.
 workflow_template = {
   "3": {
     "inputs": {
@@ -100,7 +99,7 @@ workflow_template = {
       "filename_prefix": "video/ComfyUI_Mobile",
       "format": "auto",
       "codec": "auto",
-      "video-preview": "",
+      # "video-preview": "",  <-- INI BARIS YANG DIHAPUS (PENYEBAB ERROR)
       "video": [ "57", 0 ]
     },
     "class_type": "SaveVideo" # Node yang dipantau
@@ -218,7 +217,12 @@ def get_comfy_output(
                     if message['data']['node'] == "58": 
                         print("Video generation complete, fetching video...")
                         output_data = message['data']['output']
-                        video_info = output_data['videos'][0]
+                        
+                        # DEBUGGING (Boleh dihapus nanti)
+                        print(f"DEBUG: Tipe data output_data: {type(output_data)}")
+                        print(f"DEBUG: Isi output_data: {json.dumps(output_data, indent=2)}")
+
+                        video_info = output_data['videos'][0] # Ini adalah baris yang crash (line 206)
                         ws.close()
                         break # Keluar dari loop
             else:
@@ -248,6 +252,9 @@ def get_comfy_output(
     except websocket.WebSocketException as e:
         print(f"WebSocket Error: {e}")
         raise gr.Error(f"Gagal terhubung ke WebSocket: {e}")
+    except KeyError as e:
+        print(f"KeyError: Kunci {e} tidak ditemukan di output JSON. Ini adalah akar masalahnya.")
+        raise gr.Error(f"Terjadi kesalahan: Struktur data output tidak cocok. {e} tidak ditemukan.")
     except Exception as e:
         print(f"An error occurred: {e}")
         raise gr.Error(f"Terjadi kesalahan: {e}")
