@@ -7,7 +7,7 @@ import tempfile
 import os
 
 # --- Konfigurasi ---
-DEFAULT_MODAL_URL = "https://forreplit0088--example-comfyui-ui.modal.run/"
+DEFAULT_MODAL_URL = "https://forreplit0089--example-comfyui-ui.modal.run/"
 DEFAULT_NEGATIVE_PROMPT = "(static image:1.5), (still frame:1.4), (motionless:1.3), motion blur, blurry, low quality, bad quality, worst quality, jpeg artifacts, compression, watermark, text, signature, username, error, deformed, mutilated, extra limbs, bad anatomy, ugly, (fused fingers:1.2), (too many fingers:1.2), pixelated, low resolution"
 
 # --- WORKFLOW TEMPLATE ---
