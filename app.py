@@ -29,7 +29,7 @@ workflow_template = {
       "filename_prefix": "video/ComfyUI_Mobile",
       "format": "auto",
       "codec": "auto",
-      "video-preview": ""
+      "video-preview": "",
       "video": [ "57", 0 ]
     },
     "class_type": "SaveVideo"
