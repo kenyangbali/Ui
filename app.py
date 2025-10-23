@@ -118,7 +118,7 @@ def get_comfy_output(
 
                         try:
                             # Sekarang ini HARUSNYA berhasil
-                            video_info = output_data['videos'][0]
+                            video_info = output_data['images'][0]
                             print("INFO: Kunci 'videos' berhasil ditemukan.")
                         
                         except KeyError:
