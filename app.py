@@ -6,12 +6,15 @@ import uuid
 import tempfile
 import os
 
+# --- Impor Baru untuk Cerebras ---
+from cerebras.cloud.sdk import Cerebras
+
 # --- Konfigurasi ---
-DEFAULT_MODAL_URL = "https://oktetod--example-comfyui-ui.modal.run/"
+DEFAULT_MODAL_URL = "https://forreplit0089--example-comfyui-ui.modal.run/"
 DEFAULT_NEGATIVE_PROMPT = "(static image:1.5), (still frame:1.4), (motionless:1.3), motion blur, blurry, low quality, bad quality, worst quality, jpeg artifacts, compression, watermark, text, signature, username, error, deformed, mutilated, extra limbs, bad anatomy, ugly, (fused fingers:1.2), (too many fingers:1.2), pixelated, low resolution"
 
 # --- WORKFLOW TEMPLATE ---
-# DIPERBAIKI: "video-preview": "" telah dihapus dari Node 58
+# (Workflow template Anda tetap sama persis)
 workflow_template = {
   "3": { "inputs": { "seed": 418826476045691, "steps": 20, "cfg": 5, "sampler_name": "uni_pc", "scheduler": "simple", "denoise": 1, "model": [ "48", 0 ], "positive": [ "6", 0 ], "negative": [ "7", 0 ], "latent_image": [ "55", 0 ] }, "class_type": "KSampler" },
   "6": { "inputs": { "text": "DEFAULT_POSITIVE_PROMPT", "clip": [ "38", 0 ] }, "class_type": "CLIPTextEncode" },
@@ -41,9 +44,66 @@ QUALITY_MAP = { "HD (720p)": (1280, 720), "SHD (1080p)": (1920, 1080) }
 DURATION_MAP = { "5 Detik": 5, "8 Detik": 8, "10 Detik": 10 }
 FPS_MAP = { "24 FPS": 24, "30 FPS": 30 }
 
-# --- Fungsi Inti ---
+# --- Fungsi Baru: Enhance Prompt (Cerebras) ---
+
+# Inisialisasi Klien Cerebras
+if "CEREBRAS_API_KEY" not in os.environ:
+    print("PERINGATAN: CEREBRAS_API_KEY tidak diatur. Fitur Enhance Prompt akan dinonaktifkan.")
+    cerebras_client = None
+else:
+    cerebras_client = Cerebras(
+        api_key=os.environ.get("CEREBRAS_API_KEY")
+    )
+
+# --- PROMPT SISTEM YANG DISEMPURNAKAN ---
+SYSTEM_PROMPT_ENHANCER = """Anda adalah seorang Sutradara Sinematik AI yang ahli dalam Image-to-Video.
+Tugas Anda adalah mengubah ide prompt dasar pengguna menjadi sebuah deskripsi adegan (scene description) yang kaya dan dinamis.
+Prompt baru HARUS menghormati subjek utama dan ide dari prompt asli.
+
+FOKUS PADA 4 ELEMEN KUNCI:
+1.  **Gerakan (Motion):** Jelaskan gerakan yang halus dan alami. Gerakan apa yang dilakukan subjek? Apa yang bergerak di latar belakang (misalnya: angin di rambut, asap mengepul, daun berguguran)?
+2.  **Sinematografi (Cinematography):** Jelaskan gaya visual. (Contoh: "gaya sinematik retro", "film kartun vintage", "rekaman drone yang luas", "bidikan close-up yang dramatis", "pencahayaan moody").
+3.  **Detail Halus (Subtle Details):** Tambahkan 1-2 detail kecil untuk membuat adegan itu hidup. (Contoh: "pantulan cahaya di air", "debu yang menari di bawah sinar matahari").
+4.  **Kualitas (Quality):** Akhiri dengan kata kunci kualitas seperti "kualitas terbaik, sangat detail, 4K".
+
+ATURAN KETAT:
+- JANGAN mengubah subjek inti (misal: jika pengguna berkata "kucing", jangan ubah jadi "anjing").
+- JANGAN menambahkan teks percakapan (Contoh: "Tentu, ini...").
+- HANYA KEMBALIKAN prompt yang telah disempurnakan."""
+
+def enhance_prompt(current_prompt):
+    if cerebras_client is None:
+        raise gr.Error("Enhance Prompt gagal: CEREBRAS_API_KEY belum diatur di server.")
+    if not current_prompt:
+        raise gr.Error("Silakan masukkan prompt terlebih dahulu sebelum di-enhance.")
+
+    try:
+        print(f"Enhancing prompt: {current_prompt}")
+        
+        completion = cerebras_client.chat.completions.create(
+            messages=[
+                {"role": "system", "content": SYSTEM_PROMPT_ENHANCER},
+                {"role": "user", "content": current_prompt}
+            ],
+            model="gpt-oss-120b",
+            stream=False, 
+            max_completion_tokens=500, # Mengurangi token, 65k terlalu banyak untuk prompt
+            temperature=1,
+            top_p=1,
+            reasoning_effort="medium"
+        )
+        
+        enhanced_text = completion.choices[0].message.content
+        print(f"Enhanced prompt: {enhanced_text}")
+        return enhanced_text.strip() # Membersihkan spasi ekstra
+        
+    except Exception as e:
+        print(f"Cerebras API error: {e}")
+        raise gr.Error(f"Gagal menghubungi API Cerebras: {e}")
+
+# --- Fungsi Inti: get_comfy_output (Telah Dimodifikasi) ---
 def get_comfy_output(
-    modal_url, image_path, positive_prompt, negative_prompt, 
+    modal_url, image_path, positive_prompt, # Dihapus: negative_prompt
     quality_str, fps_str, duration_str
 ):
     
@@ -53,6 +113,10 @@ def get_comfy_output(
     if not modal_url: raise gr.Error("Modal Server URL wajib diisi!")
     if image_path is None: raise gr.Error("Anda harus mengupload gambar input!")
     if not positive_prompt: raise gr.Error("Positive Prompt wajib diisi!")
+    
+    # --- PERUBAHAN DI SINI ---
+    # Negative prompt sekarang di-hardcode untuk selalu menggunakan default
+    negative_prompt = DEFAULT_NEGATIVE_PROMPT
 
     # 1. Menyiapkan URL
     if modal_url.endswith("/"): modal_url = modal_url[:-1]
@@ -80,7 +144,7 @@ def get_comfy_output(
         client_id = str(uuid.uuid4())
         prompt_workflow = json.loads(json.dumps(workflow_template))
         prompt_workflow["6"]["inputs"]["text"] = positive_prompt
-        prompt_workflow["7"]["inputs"]["text"] = negative_prompt
+        prompt_workflow["7"]["inputs"]["text"] = negative_prompt # Akan selalu menggunakan DEFAULT_NEGATIVE_PROMPT
         prompt_workflow["56"]["inputs"]["image"] = image_name
         prompt_workflow["55"]["inputs"]["width"] = width
         prompt_workflow["55"]["inputs"]["height"] = height
@@ -117,13 +181,11 @@ def get_comfy_output(
                         print(f"DEBUG: Menerima output mentah dari Node 58: {json.dumps(output_data, indent=2)}")
 
                         try:
-                            # Sekarang ini HARUSNYA berhasil
                             video_info = output_data['images'][0]
                             print("INFO: Kunci 'videos' berhasil ditemukan.")
                         
                         except KeyError:
                             print("ERROR: Kunci 'videos' tidak ditemukan!")
-                            # Kode 'pintar' dari sebelumnya akan mencoba 'previews'
                             try:
                                 video_info = output_data['previews'][0]
                                 print("INFO: Kunci 'videos' tidak ada, tapi 'previews' ditemukan. Menggunakan 'previews'.")
@@ -185,28 +247,44 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
         image_input = gr.Image(label="Gambar Input", type="filepath", sources=["upload", "clipboard"])
         positive_prompt_input = gr.Textbox(label="Positive Prompt", placeholder="Contoh: a man playing guitar, retro cartoon style...", lines=3)
         
+        # --- PERUBAHAN DI SINI ---
+        # Tombol Enhance ditempatkan tepat di bawah Positive Prompt
+        enhance_btn = gr.Button("✨ Enhance Prompt (via Cerebras)", variant="secondary", interactive=bool(cerebras_client))
+        if not cerebras_client:
+            gr.Markdown("<p style='color: red;'>Enhance dinonaktifkan. CEREBRAS_API_KEY tidak ditemukan.</p>")
+        
         gr.Markdown("### 3. Pengaturan Video")
         with gr.Row():
             quality_input = gr.Radio(label="Kualitas Video", choices=["HD (720p)", "SHD (1080p)"], value="HD (720p)")
             fps_input = gr.Radio(label="Frame Rate (FPS)", choices=["24 FPS", "30 FPS"], value="24 FPS")
         duration_input = gr.Radio(label="Durasi Video", choices=["5 Detik", "8 Detik", "10 Detik"], value="5 Detik")
         
-        gr.Markdown("### 4. (Opsional) Prompt Negatif")
-        negative_prompt_input = gr.Textbox(label="Negative Prompt", value=DEFAULT_NEGATIVE_PROMPT, lines=5, show_label=False)
+        # --- PERUBAHAN DI SINI ---
+        # Seluruh bagian Negative Prompt (Markdown dan Textbox) telah dihapus.
         
         gr.Markdown("---")
         generate_btn = gr.Button("🚀 Generate Video", variant="primary")
         
-        gr.Markdown("### 5. Hasil")
+        gr.Markdown("### 4. Hasil") # Nomor diubah dari 5 ke 4
         video_output = gr.Video(label="Hasil Video", show_label=False)
 
+    # --- PERUBAHAN DI SINI ---
+    # Event handler untuk tombol Generate
     generate_btn.click(
         fn=get_comfy_output,
         inputs=[
-            modal_url_input, image_input, positive_prompt_input, negative_prompt_input,
+            modal_url_input, image_input, positive_prompt_input,
             quality_input, fps_input, duration_input
-        ],
+        ], # 'negative_prompt_input' telah dihapus dari list
         outputs=[video_output]
+    )
+
+    # Event handler untuk tombol Enhance
+    # Fungsinya sudah benar: mengambil dari positive_prompt_input, dan mengembalikannya ke positive_prompt_input
+    enhance_btn.click(
+        fn=enhance_prompt,
+        inputs=[positive_prompt_input],
+        outputs=[positive_prompt_input]
     )
 
 if __name__ == "__main__":
