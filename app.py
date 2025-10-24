@@ -72,7 +72,6 @@ FOKUS PADA 5 ELEMEN KUNCI:
 5.  **Kualitas Sinematik:** Selalu akhiri dengan kualitas. (Contoh: "sangat detail, 4K, gerakan sinematik, fokus tajam, sinematografi horor").
 
 ATURAN KETAT:
-- Jangan melebihi 500 token untuk output prompt yang anda berikan
 - JANGAN mengubah subjek inti atau ide utama pengguna (misal: "Wewe Gombel").
 - JANGAN menambahkan teks percakapan (Contoh: "Tentu, ini...").
 - HANYA KEMBALIKAN prompt yang telah disempurnakan, yang kaya dengan detail berlapis."""
@@ -93,7 +92,7 @@ def enhance_prompt(current_prompt):
         ],
         "model": "gpt-oss-120b",
         "stream": False, 
-        "max_completion_tokens": 500,
+        "max_completion_tokens": 1500,
         "temperature": 0.7,
         "top_p": 0.8,
         "reasoning_effort": "high"
@@ -119,6 +118,13 @@ def enhance_prompt(current_prompt):
         raise gr.Error(f"Gagal menghubungi API Cerebras (kedua key gagal): {last_exception}")
 
     enhanced_text = completion.choices[0].message.content
+    
+    # --- TAMBAHKAN PERBAIKAN DI SINI ---
+    if enhanced_text is None:
+        print("ERROR: API Cerebras mengembalikan respons sukses namun 'content' adalah None.")
+        raise gr.Error("Gagal 'enhance' prompt: Model tidak mengembalikan teks. Coba lagi atau ubah prompt Anda.")
+    # --- AKHIR PERBAIKAN ---
+
     print(f"Enhanced prompt: {enhanced_text}")
     return enhanced_text.strip()
 
