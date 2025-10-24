@@ -92,7 +92,7 @@ def enhance_prompt(current_prompt):
         ],
         "model": "gpt-oss-120b",
         "stream": False, 
-        "max_completion_tokens": 500,
+        "max_completion_tokens": 200,
         "temperature": 1,
         "top_p": 1,
         "reasoning_effort": "medium"
