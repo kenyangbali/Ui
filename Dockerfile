@@ -9,7 +9,8 @@ WORKDIR /app
 RUN pip install --no-cache-dir \
     gradio \
     requests \
-    websocket-client
+    websocket-client \
+    cerebras-cloud-sdk
 
 # 4. Salin file aplikasi Anda ke dalam container
 COPY app.py .
