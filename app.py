@@ -72,6 +72,7 @@ FOKUS PADA 5 ELEMEN KUNCI:
 5.  **Kualitas Sinematik:** Selalu akhiri dengan kualitas. (Contoh: "sangat detail, 4K, gerakan sinematik, fokus tajam, sinematografi horor").
 
 ATURAN KETAT:
+- (Max 500 token)
 - JANGAN mengubah subjek inti atau ide utama pengguna (misal: "Wewe Gombel").
 - JANGAN menambahkan teks percakapan (Contoh: "Tentu, ini...").
 - HANYA KEMBALIKAN prompt yang telah disempurnakan, yang kaya dengan detail berlapis."""
@@ -92,7 +93,7 @@ def enhance_prompt(current_prompt):
         ],
         "model": "gpt-oss-120b",
         "stream": False, 
-        "max_completion_tokens": 800,
+        "max_completion_tokens": 500,
         "temperature": 1,
         "top_p": 1,
         "reasoning_effort": "medium"
